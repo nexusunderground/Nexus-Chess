@@ -1,0 +1,96 @@
+[package]
+name = "rustychess"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "rustychess"
+path = "src/main.rs"
+
+[features]
+default = []
+
+# Heap profiling
+# cargo build --release --features perf
+perf = ["dep:dhat"]
+
+# Tracy profiler
+# cargo build --profile release-with-debug --features tracy
+# cargo build --profile release-with-debug --features perf,tracy
+tracy = ["dep:tracy-client"]
+
+[dependencies]
+# UI
+eframe = { version = "0.31", features = ["default"] }
+egui = "0.31"
+egui_extras = { version = "0.31", features = ["svg"] }
+
+# Chess logic (SAN/FEN replay)
+shakmaty = "0.27"
+
+# Config / serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "1"
+
+# CDP (Chrome DevTools Protocol) — move list extraction
+ureq = { version = "2", features = ["json"] }
+tungstenite = "0.24"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Error handling
+anyhow = "1"
+
+# System tray icon
+# tray-icon = "0.19"
+
+# Profiling (optional)
+dhat = { version = "0.3", optional = true }
+
+tracy-client = { version = "0.18", optional = true, default-features = false, features = [
+    "enable",
+    "ondemand",
+    "system-tracing",
+    "context-switch-tracing",
+    "sampling",
+    "code-transfer",
+    "callstack-inlines",
+] }
+
+# Win32 for overlay window management, tray, console, and capture exclusion
+[target.'cfg(target_os = "windows")'.dependencies]
+windows = { version = "0.58", features = [
+    # Core types (HWND, BOOL, RECT, etc.)
+    "Win32_Foundation",
+    # FindWindowW, GetWindowLongW, SetWindowLongW, SetWindowPos,
+    # ShowWindow, EnumWindows, GetWindowTextW, IsWindowVisible,
+    # GetClientRect, SetWindowDisplayAffinity, WDA_EXCLUDEFROMCAPTURE, WDA_NONE
+    "Win32_UI_WindowsAndMessaging",
+    # ClientToScreen
+    "Win32_Graphics_Gdi",
+    # DWM composition (future use)
+    "Win32_UI_Controls",
+    "Win32_Graphics_Dwm",
+    # AllocConsole, GetConsoleWindow
+    "Win32_System_Console",
+] }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip         = "symbols"
+panic         = "unwind"
+
+# Release build with debug symbols for Tracy/flamegraphs
+# cargo build --profile release-with-debug --features tracy
+[profile.release-with-debug]
+inherits = "release"
+strip = false
+debug = true
+
+[profile.dev]
+opt-level = 1
